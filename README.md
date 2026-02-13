@@ -1,68 +1,171 @@
-# AMTL TTS Engine
+# Digital Sentinel
 
-Unified text-to-speech wrapper for Almost Magic Tech Lab.
+AI-powered cybersecurity assessment platform that combines external vulnerability scanning with internal SIEM correlation to provide comprehensive security insights.
 
-**ELAINE's ElevenLabs voice (`XQanfahzbl1YiUlZi5NW`) is her PRIMARY voice.** These local models are for non-ELAINE TTS and local fallback only.
+## Architecture
 
-## Engines
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Digital Sentinel                              │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────────┐  │
+│  │   FastAPI     │  │  Wazuh SIEM      │  │  Benchmark Engine     │  │
+│  │   REST API    │  │  Correlation     │  │  Industry Analytics   │  │
+│  │              │  │  Engine           │  │                       │  │
+│  └──────┬───────┘  └────────┬─────────┘  └───────────┬───────────┘  │
+│         │                   │                         │              │
+│  ┌──────┴───────────────────┴─────────────────────────┴───────────┐  │
+│  │                    Service Layer                                │  │
+│  └──────┬───────────────────┬─────────────────────────┬───────────┘  │
+│         │                   │                         │              │
+│  ┌──────┴──────┐  ┌────────┴────────┐  ┌─────────────┴───────────┐  │
+│  │ PostgreSQL  │  │     Redis       │  │       Neo4j             │  │
+│  │ TimescaleDB │  │   Cache/Queue   │  │   Graph Relationships   │  │
+│  └─────────────┘  └─────────────────┘  └─────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-| Engine | Use case | Requires |
-|--------|----------|----------|
-| **ElevenLabs** | ELAINE's primary voice | `ELEVENLABS_API_KEY` env var |
-| **Kokoro-82M** | Local English TTS / ELAINE fallback | `pip install kokoro soundfile` |
-| **MeloTTS** | Multilingual TTS | `pip install melotts` |
+## Setup
 
-## Installation
+### Prerequisites
+
+- Python 3.11+
+- Docker & Docker Compose (for databases)
+- Git
+
+### Local Development
 
 ```bash
-pip install kokoro soundfile --break-system-packages
-pip install melotts --break-system-packages
+# Clone the repository
+git clone <repo-url> && cd digital-sentinel
+
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install -e ".[dev]"
+
+# Copy environment configuration
+cp .env.example .env
+# Edit .env with your settings
+
+# Start databases
+docker compose up -d postgres redis neo4j
+
+# Run database migrations
+alembic upgrade head
+
+# Start the development server
+uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Usage
-
-```python
-import asyncio
-from tts_engine import speak, speak_as_elaine, speak_multilingual, health_check
-
-# ELAINE (ElevenLabs primary, Kokoro fallback)
-audio = asyncio.run(speak_as_elaine("Hello from ELAINE"))
-
-# Local English TTS (Kokoro)
-audio = speak("Hello world")
-
-# Multilingual TTS (MeloTTS)
-audio = speak_multilingual("Hello world", language="EN")
-
-# Check which engines are available
-status = health_check()
-# {'kokoro': True, 'melo': True, 'elevenlabs': False}
-```
-
-## API
-
-### `speak_as_elaine(text, output_path=None)` (async)
-Speaks as ELAINE using ElevenLabs API. Falls back to Kokoro if `ELEVENLABS_API_KEY` is not set.
-
-### `speak(text, engine="kokoro", voice="af_heart", output_path=None)`
-Local English TTS. Supports `engine="kokoro"` (default) or `engine="melo"`.
-
-### `speak_multilingual(text, language="EN", output_path=None)`
-Multilingual TTS via MeloTTS.
-
-### `health_check()`
-Returns a dict of engine availability: `{"kokoro": bool, "melo": bool, "elevenlabs": bool}`.
-
-## ELAINE Configuration
-
-- **Voice ID**: `XQanfahzbl1YiUlZi5NW`
-- **Model**: `eleven_multilingual_v2`
-- **Base URL**: `https://api.elevenlabs.io/v1`
-
-## Tests
+### Docker Deployment
 
 ```bash
-python3 -m pytest test_tts.py -v
+# Build and start all services
+docker compose up -d --build
+
+# Check service health
+curl http://localhost:8000/health
 ```
 
-20 tests across 5 categories: health check, Kokoro English, MeloTTS multilingual, ELAINE fallback, and unified interface.
+### Coolify Deployment
+
+This project is Coolify-compatible. Configure using:
+
+- **Build Pack**: Dockerfile
+- **Port**: 8000
+- **Health Check**: `/health/live`
+- **Environment Variables**: See `.env.example`
+
+## API Documentation
+
+### Health Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Full health check with service status |
+| `/health/ready` | GET | Readiness probe (dependency check) |
+| `/health/live` | GET | Liveness probe (process alive) |
+
+### Wazuh Cross-Domain Correlation
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/wazuh/connect` | POST | Configure Wazuh SIEM connection |
+| `/api/wazuh/correlate/{org}` | POST | Run cross-domain correlation |
+| `/api/wazuh/timeline/{org}` | GET | Unified threat timeline |
+| `/api/wazuh/alerts/{org}` | GET | Recent Wazuh alerts (translated) |
+
+### Industry Benchmark Engine
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/benchmarks/{org}` | GET | Organisation's benchmark position |
+| `/api/benchmarks/industry/{sector}` | GET | Industry sector statistics |
+| `/api/benchmarks/trends/{sector}` | GET | Industry trend data over time |
+| `/api/benchmarks/compare/{org}` | POST | Comparative analysis |
+
+### Interactive API Docs
+
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SENTINEL_ENVIRONMENT` | `development` | Environment (development/staging/production) |
+| `SENTINEL_DEBUG` | `false` | Enable debug mode |
+| `SENTINEL_LOG_LEVEL` | `INFO` | Logging level |
+| `SENTINEL_LOG_FORMAT` | `json` | Log format (json/console) |
+| `SENTINEL_DATABASE_URL` | `postgresql+asyncpg://...` | PostgreSQL connection string |
+| `SENTINEL_REDIS_URL` | `redis://localhost:6379/0` | Redis connection string |
+| `SENTINEL_NEO4J_URI` | `bolt://localhost:7687` | Neo4j connection URI |
+| `SENTINEL_SECRET_KEY` | *(placeholder)* | JWT signing key — **change in production** |
+| `SENTINEL_ALLOWED_ORIGINS` | `http://localhost:3000` | CORS allowed origins (comma-separated) |
+| `SENTINEL_RATE_LIMIT_DEFAULT` | `100/minute` | Default rate limit |
+| `SENTINEL_WAZUH_API_URL` | *(empty)* | Wazuh API endpoint |
+| `SENTINEL_WAZUH_API_USER` | *(empty)* | Wazuh API username |
+| `SENTINEL_WAZUH_API_PASSWORD` | *(empty)* | Wazuh API password |
+
+See `.env.example` for the complete list.
+
+## Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src --cov-report=term-missing
+
+# Run beast tests only
+pytest -m beast
+
+# Run a specific milestone's tests
+pytest tests/test_milestone21_wazuh_beast.py
+pytest tests/test_milestone22_benchmark_beast.py
+pytest tests/test_milestone23_production_beast.py
+```
+
+## Deployment Checklist
+
+- [ ] Update `SENTINEL_SECRET_KEY` to a strong random value
+- [ ] Set `SENTINEL_ENVIRONMENT=production`
+- [ ] Set `SENTINEL_DEBUG=false`
+- [ ] Configure `SENTINEL_ALLOWED_ORIGINS` for your domains
+- [ ] Set up PostgreSQL with TimescaleDB extension
+- [ ] Configure Redis for caching and rate limiting
+- [ ] Set up Neo4j for graph relationships
+- [ ] Configure Wazuh API credentials if using SIEM integration
+- [ ] Set appropriate rate limits for your expected traffic
+- [ ] Enable HTTPS via reverse proxy (nginx/Caddy)
+- [ ] Set `SENTINEL_LOG_FORMAT=json` for log aggregation
+- [ ] Run database migrations: `alembic upgrade head`
+- [ ] Verify health checks: `curl /health`
+
+## Licence
+
+Proprietary — Digital Sentinel Platform.

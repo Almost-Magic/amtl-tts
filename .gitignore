@@ -5,3 +5,13 @@ dist/
 .env.local
 coverage/
 .DS_Store
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+htmlcov/
+.coverage
