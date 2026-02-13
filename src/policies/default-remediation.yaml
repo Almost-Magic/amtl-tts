@@ -1,0 +1,40 @@
+policies:
+  - findingType: missing_header
+    tier: AUTO
+    description: Add missing security headers automatically
+    remediationAction: Add recommended security headers to web server configuration
+
+  - findingType: weak_crypto
+    tier: SUPERVISED
+    description: Upgrade weak cryptographic configurations with post-hoc review
+    remediationAction: Replace deprecated TLS/cipher configurations with modern alternatives
+
+  - findingType: auth_bypass
+    tier: APPROVAL_REQUIRED
+    description: Authentication bypass requires human approval before remediation
+    remediationAction: Patch authentication logic and force password resets
+
+  - findingType: dns_misconfiguration
+    tier: PROHIBITED
+    description: DNS changes are never auto-remediated due to blast radius
+    remediationAction: Manual DNS remediation required — raise change request
+
+  - findingType: xss
+    tier: AUTO
+    description: Cross-site scripting vulnerabilities auto-remediated
+    remediationAction: Apply input sanitisation and output encoding
+
+  - findingType: sql_injection
+    tier: APPROVAL_REQUIRED
+    description: SQL injection requires approval due to potential application impact
+    remediationAction: Apply parameterised queries and input validation
+
+  - findingType: default_credentials
+    tier: AUTO
+    description: Default credentials automatically rotated
+    remediationAction: Rotate credentials and enforce password policy
+
+  - findingType: open_redirect
+    tier: SUPERVISED
+    description: Open redirect fixes applied with logging
+    remediationAction: Implement URL validation and whitelist
