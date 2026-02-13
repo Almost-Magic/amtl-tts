@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import time
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
-from src.config import get_settings
 from src.schemas.health import HealthResponse, ServiceHealth
 
 router = APIRouter(tags=["health"])
@@ -39,9 +38,9 @@ async def _check_app() -> None:
 
 
 @router.get("/health", response_model=HealthResponse)
-async def health_check() -> HealthResponse:
+async def health_check(request: Request) -> HealthResponse:
     """Basic health check — is the application running?"""
-    settings = get_settings()
+    settings = request.app.state.settings
     app_health = await _check_service("app", _check_app)
 
     services = [app_health]
@@ -56,13 +55,13 @@ async def health_check() -> HealthResponse:
 
 
 @router.get("/health/ready", response_model=HealthResponse)
-async def readiness_check() -> HealthResponse:
+async def readiness_check(request: Request) -> HealthResponse:
     """Readiness check — are all dependencies available?
 
     In production this would check PostgreSQL, Redis, Neo4j, etc.
     For now we check the application itself.
     """
-    settings = get_settings()
+    settings = request.app.state.settings
     services = [await _check_service("app", _check_app)]
 
     overall = "healthy" if all(s.status == "healthy" for s in services) else "unhealthy"
