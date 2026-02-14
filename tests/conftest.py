@@ -21,7 +21,7 @@ def _test_settings() -> Settings:
         log_format="console",
         rate_limit_default="1000/minute",
         rate_limit_burst="2000/minute",
-        allowed_origins="*",
+        allowed_origins="http://localhost:3000,http://localhost:5015",
     )
 
 
